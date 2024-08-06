@@ -22,6 +22,21 @@ class SalesModel {
         $stmt->close();
     }
 
-    
+    public function getSales($filters) {
+        $query = "SELECT * FROM sales WHERE customer_name LIKE ? AND product_name LIKE ? AND product_price BETWEEN ? AND ?";
+        $stmt = $this->mysqli->prepare($query);
+
+        $customerName = "%{$filters['customer_name']}%";
+        $productName = "%{$filters['product_name']}%";
+        $minPrice = $filters['min_price'] ?: 0;
+        $maxPrice = $filters['max_price'] ?: PHP_INT_MAX;
+
+        $stmt->bind_param("ssdd", $customerName, $productName, $minPrice, $maxPrice);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $stmt->close();
+
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
 }
 ?>
