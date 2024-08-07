@@ -10,16 +10,34 @@ class SalesModel {
     }
 
     public function insertSales($data) {
-        $stmt = $this->mysqli->prepare("INSERT INTO sales (sale_id, customer_name, customer_mail, product_name, product_price, sale_date) VALUES (?, ?, ?, ?, ?, ?)");
+        // Prepare SQL statement to check if sale_id exists
+        $checkStmt = $this->mysqli->prepare("SELECT COUNT(*) FROM sales WHERE sale_id = ?");
+        // Prepare SQL statement to insert new record
+        $insertStmt = $this->mysqli->prepare("INSERT INTO sales (sale_id, customer_name, customer_mail, product_id, product_name, product_price, sale_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
         foreach ($data as $sale) {
+            // Initialize $count
+            $count = 0;
+            // Check if sale_id already exists
+            $checkStmt->bind_param("i", $sale['sale_id']);
+            $checkStmt->execute();
+            $checkStmt->bind_result($count);
+            $checkStmt->fetch();
+            if ($count > 0) {
+                // Skip insertion if sale_id exists
+                echo "Sale ID {$sale['sale_id']} already exists. Skipping...\n";
+                continue;
+            }
+
             // Convert product_price to float
             $productPrice = (float)$sale['product_price'];
-            // Bind parameters
-            $stmt->bind_param("issdss", $sale['sale_id'], $sale['customer_name'], $sale['customer_mail'], $productPrice, $sale['product_name'], $sale['sale_date']);
-            // Execute the statement
-            $stmt->execute();
+            // Bind parameters and execute insert statement
+            $insertStmt->bind_param("issdsss", $sale['sale_id'], $sale['customer_name'], $sale['customer_mail'], $sale['product_id'], $sale['product_name'], $productPrice, $sale['sale_date']);
+            $insertStmt->execute();
         }
-        $stmt->close();
+        
+        $checkStmt->close();
+        $insertStmt->close();
     }
 
     public function getSales($filters) {
